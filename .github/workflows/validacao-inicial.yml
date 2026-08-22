@@ -1,0 +1,34 @@
+name: Validação inicial
+
+on:
+  push:
+    branches:
+      - development
+      - homologation
+      - main
+  pull_request:
+    branches:
+      - development
+      - homologation
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    name: Arquivos e formatação
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7.0.1
+
+      - name: Verificar arquivos essenciais
+        run: |
+          test -f README.md
+          test -f .gitignore
+
+      - name: Verificar espaços em branco
+        run: git diff-tree --check --no-commit-id -r HEAD
+
