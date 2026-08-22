@@ -29,6 +29,26 @@ jobs:
           test -f README.md
           test -f .gitignore
 
+      - name: Validar fluxo entre branches
+        if: github.event_name == 'pull_request'
+        env:
+          BRANCH_ORIGEM: ${{ github.head_ref }}
+          BRANCH_DESTINO: ${{ github.base_ref }}
+        run: |
+          case "$BRANCH_DESTINO" in
+            main)
+              test "$BRANCH_ORIGEM" = "homologation"
+              ;;
+            homologation)
+              test "$BRANCH_ORIGEM" = "development"
+              ;;
+            development)
+              case "$BRANCH_ORIGEM" in
+                feature/*) ;;
+                *) exit 1 ;;
+              esac
+              ;;
+          esac
+
       - name: Verificar espaços em branco
         run: git diff-tree --check --no-commit-id -r HEAD
-
