@@ -29,6 +29,24 @@ services:
     depends_on:
       - minio
 
+  rabbitmq:
+    image: rabbitmq:4.0-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${ICARUS_RABBITMQ_USUARIO:-icarus}
+      RABBITMQ_DEFAULT_PASS: ${ICARUS_RABBITMQ_SENHA:-icarus-desenvolvimento}
+    ports:
+      - "127.0.0.1:${ICARUS_RABBITMQ_PORTA:-5672}:5672"
+      - "127.0.0.1:${ICARUS_RABBITMQ_PORTA_MANAGEMENT:-15672}:15672"
+    volumes:
+      - rabbitmq_dados:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   minio_raw:
   duckdb_dados:
+  rabbitmq_dados:
