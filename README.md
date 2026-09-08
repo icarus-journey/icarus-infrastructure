@@ -58,6 +58,24 @@ publicadas acima. Quando esses processos forem containerizados, será preciso
 uma rede Docker compartilhada entre os repositórios para a comunicação
 acontecer pelo nome do serviço em vez de portas publicadas no host.
 
+## Deployment local
+
+A branch `deploy` contém o script inicial de deployment local. Ele cria ou
+atualiza checkouts isolados das branches remotas `development` de mobile,
+platform, dados e infraestrutura; depois inicia PostgreSQL, MinIO e RabbitMQ.
+As cópias de trabalho da equipe não são trocadas nem atualizadas pelo script.
+
+```bash
+git switch deploy
+./scripts/implantar-development.sh
+```
+
+Por padrão, os checkouts ficam em `.deployment/development/`. Para usar outro
+local, defina `ICARUS_DIRETORIO_DEPLOYMENT`. A API e o mobile ainda não são
+serviços containerizados, portanto esta primeira versão não os inicia nem
+executa migrations; ela prepara as dependências compartilhadas a partir das
+revisões de `development`.
+
 ## Pendências
 
 **Estratégia de versionamento das imagens Docker.** Hoje cada serviço usa uma
