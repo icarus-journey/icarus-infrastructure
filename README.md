@@ -14,7 +14,7 @@ docker compose up -d minio
 - API S3: `http://localhost:9100`;
 - console administrativo: `http://localhost:9101`;
 - usuário local padrão: `icarus`;
-- senha local padrão: `icarus-desenvolvimento`.
+- senha local padrão: `urubu@100`.
 
 As credenciais padrão servem somente ao desenvolvimento local. Para alterá-las,
 defina `ICARUS_MINIO_USUARIO` e `ICARUS_MINIO_SENHA`.
@@ -41,7 +41,7 @@ docker compose up -d rabbitmq
 - protocolo AMQP: `localhost:5672`;
 - console administrativo: `http://localhost:15672`;
 - usuário local padrão: `icarus`;
-- senha local padrão: `icarus-desenvolvimento`.
+- senha local padrão: `urubu@100`.
 
 As credenciais padrão servem somente ao desenvolvimento local. Para alterá-las,
 defina `ICARUS_RABBITMQ_USUARIO` e `ICARUS_RABBITMQ_SENHA`.
@@ -58,11 +58,26 @@ publicadas acima. Quando esses processos forem containerizados, será preciso
 uma rede Docker compartilhada entre os repositórios para a comunicação
 acontecer pelo nome do serviço em vez de portas publicadas no host.
 
+## Aplicativo mobile no Expo Go
+
+O Expo Go também pode ser executado como serviço local. O Expo cria um túnel
+para o dispositivo, portanto não há porta da infraestrutura exposta na rede.
+
+```bash
+docker compose up -d --build mobile
+docker compose logs -f mobile
+```
+
+Copie a URL `exp://` exibida nos logs e abra-a no Expo Go. O código do
+checkout de `icarus-mobile` é montado no contêiner, preservando a atualização
+automática durante o desenvolvimento.
+
 ## Deployment local
 
 A branch `deploy` contém o script inicial de deployment local. Ele cria ou
 atualiza checkouts isolados das branches remotas `development` de mobile,
-platform, dados e infraestrutura; depois inicia PostgreSQL, MinIO e RabbitMQ.
+platform, dados e infraestrutura; depois inicia PostgreSQL, MinIO, RabbitMQ e
+o Expo Mobile em túnel.
 As cópias de trabalho da equipe não são trocadas nem atualizadas pelo script.
 
 ```bash
@@ -71,10 +86,9 @@ git switch deploy
 ```
 
 Por padrão, os checkouts ficam em `.deployment/development/`. Para usar outro
-local, defina `ICARUS_DIRETORIO_DEPLOYMENT`. A API e o mobile ainda não são
-serviços containerizados, portanto esta primeira versão não os inicia nem
-executa migrations; ela prepara as dependências compartilhadas a partir das
-revisões de `development`.
+local, defina `ICARUS_DIRETORIO_DEPLOYMENT`. A API ainda não é iniciada nem
+recebe migrations; o mobile é iniciado como Expo em túnel a partir da revisão
+de `development`.
 
 ## Pendências
 

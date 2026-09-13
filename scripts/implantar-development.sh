@@ -51,9 +51,11 @@ atualizar_repositorio "icarus-platform" "https://github.com/icarus-journey/icaru
 atualizar_repositorio "icarus-data" "https://github.com/icarus-journey/icarus-data.git"
 atualizar_repositorio "icarus-infrastructure" "https://github.com/icarus-journey/icarus-infrastructure.git"
 
-echo "Iniciando PostgreSQL, MinIO e RabbitMQ:"
+echo "Iniciando PostgreSQL, MinIO, RabbitMQ e o Expo Mobile:"
 docker compose -f "${DIRETORIO_DESTINO}/icarus-platform/docker-compose.yml" up -d postgres
-docker compose -f "${DIRETORIO_DESTINO}/icarus-infrastructure/compose.yaml" up -d minio rabbitmq
+docker compose -f "${DIRETORIO_DESTINO}/icarus-infrastructure/compose.yaml" up -d --build minio rabbitmq mobile
 
 echo "Deployment local inicializado em ${DIRETORIO_DESTINO}."
-echo "A API e o aplicativo mobile ainda não são serviços containerizados; por isso não são iniciados por este script."
+echo "Acompanhe a URL do Expo Go com:"
+echo "docker compose -f \"${DIRETORIO_DESTINO}/icarus-infrastructure/compose.yaml\" logs -f mobile"
+echo "A API ainda não é iniciada por este script."
