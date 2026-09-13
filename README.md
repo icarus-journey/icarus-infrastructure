@@ -74,14 +74,14 @@ automática durante o desenvolvimento.
 
 ## Deployment local
 
-A branch `deploy` contém o script inicial de deployment local. Ele cria ou
-atualiza checkouts isolados das branches remotas `development` de mobile,
+A branch `development` contém o script inicial de deployment local. Ele cria
+ou atualiza checkouts isolados das branches remotas `development` de mobile,
 platform, dados e infraestrutura; depois inicia PostgreSQL, MinIO, RabbitMQ e
 o Expo Mobile em túnel.
 As cópias de trabalho da equipe não são trocadas nem atualizadas pelo script.
 
 ```bash
-git switch deploy
+git switch development
 ./scripts/implantar-development.sh
 ```
 

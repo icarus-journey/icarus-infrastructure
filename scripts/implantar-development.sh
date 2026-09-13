@@ -7,8 +7,8 @@ DIRETORIO_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DIRETORIO_REPOSITORIO="$(cd -- "${DIRETORIO_SCRIPT}/.." && pwd)"
 DIRETORIO_DESTINO="${ICARUS_DIRETORIO_DEPLOYMENT:-${DIRETORIO_REPOSITORIO}/.deployment/${RAMO_ORIGEM}}"
 
-if [[ "$(git -C "${DIRETORIO_REPOSITORIO}" branch --show-current)" != "deploy" ]]; then
-    echo "Execute este script a partir da branch deploy do icarus-infrastructure." >&2
+if [[ "$(git -C "${DIRETORIO_REPOSITORIO}" branch --show-current)" != "development" ]]; then
+    echo "Execute este script a partir da branch development do icarus-infrastructure." >&2
     exit 1
 fi
 
