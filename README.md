@@ -72,6 +72,40 @@ Copie a URL `exp://` exibida nos logs e abra-a no Expo Go. O código do
 checkout de `icarus-mobile` é montado no contêiner, preservando a atualização
 automática durante o desenvolvimento.
 
+## Observabilidade
+
+Grafana, Tempo (traces), Prometheus (métricas) e Loki (logs) — seção 11 do
+`01-arquitetura-da-solucao.md` no `icarus-context`. Os logs continuam
+também em JSON no stdout de cada processo (exigência da mesma seção) — o
+Loki é um destino *a mais*, não substitui o stdout.
+
+```bash
+docker compose up -d tempo prometheus loki grafana
+```
+
+- Grafana: `http://localhost:3000` (usuário/senha padrão: `icarus`/`icarus-desenvolvimento`);
+- Tempo: recebe traces via OTLP/HTTP em `localhost:4318`; API de consulta em `localhost:3200` (a mesma que o Grafana usa internamente — publicada também no host para depuração via `curl`);
+- Prometheus: `http://localhost:9090`, com o **recebedor OTLP habilitado** (`--web.enable-otlp-receiver`) — a API empurra métricas direto, sem *scrape*;
+- Loki: recebe logs via API de push em `localhost:3100` — a API empurra logs direto, sem agente coletor (ex.: Promtail) no meio. Retenção de **1 semana** (`compactor.retention_enabled: true` em `observabilidade/loki-config.yaml` — sem isso, `retention_period` sozinho não apaga nada).
+
+As credenciais padrão do Grafana servem só ao desenvolvimento local. Para
+alterá-las, defina `ICARUS_GRAFANA_USUARIO` e `ICARUS_GRAFANA_SENHA`. Portas
+alteráveis via `ICARUS_TEMPO_PORTA_OTLP`, `ICARUS_TEMPO_PORTA_QUERY`,
+`ICARUS_PROMETHEUS_PORTA`, `ICARUS_LOKI_PORTA` e `ICARUS_GRAFANA_PORTA`.
+
+Tempo, Prometheus e Loki já vêm pré-configurados como fontes de dados no
+Grafana (`observabilidade/grafana-datasources.yml`) — abrir o Grafana já é
+suficiente para explorar logs, traces e métricas, sem configuração manual.
+O Tempo também já vem ligado ao Loki (um clique num trace abre os logs
+daquela requisição) e vice-versa (um clique numa linha de log com `TraceId`
+abre o trace correspondente) — a correlação usa o `TraceId` **dentro do
+texto** da linha de log, não como *label* do Loki (`TraceId` é alta
+cardinalidade — um valor novo a cada requisição — e nunca deve virar label,
+sob pena de degradar a performance do Loki).
+
+Consumidores hoje rodam fora de container (mesma situação do RabbitMQ, ver
+seção acima) e se conectam pelas portas publicadas em `localhost`.
+
 ## Deployment local
 
 A branch `development` contém o script inicial de deployment local. Ele cria
@@ -97,6 +131,7 @@ convenção diferente, sem termos parado para decidir isso de propósito:
 
 - `minio/minio:RELEASE.2025-09-07T16-13-09Z` (aqui) — tag de release imutável, 100% fixada.
 - `rabbitmq:4.0-management` (aqui) — major.minor fixados, patch "flutua" a cada `pull`.
+- `grafana/tempo:2.6.1`, `prom/prometheus:v3.0.1`, `grafana/grafana:11.3.0`, `grafana/loki:3.3.0` (aqui) — major.minor.patch fixados, mas sem revisão periódica combinada.
 - `postgres:16` (`icarus-platform/docker-compose.yml`) — só a major fixada; minor/patch "flutuam".
 
 O trade-off: tag flutuante pega correção de segurança automaticamente mas não

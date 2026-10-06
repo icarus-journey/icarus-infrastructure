@@ -55,8 +55,66 @@ services:
       retries: 5
     restart: unless-stopped
 
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observabilidade/tempo.yaml:/etc/tempo.yaml
+      - tempo_dados:/var/tempo
+    ports:
+      # Recebe traces via OTLP/HTTP. Publicada no host para a API (fora de container) poder enviar.
+      - "127.0.0.1:${ICARUS_TEMPO_PORTA_OTLP:-4318}:4318"
+      # API de consulta (o que o Grafana usa internamente); publicada tambem para inspecionar/depurar via curl.
+      - "127.0.0.1:${ICARUS_TEMPO_PORTA_QUERY:-3200}:3200"
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.3.0
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./observabilidade/loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_dados:/loki
+    ports:
+      # Recebe logs via API de push do Loki. Publicada no host para a API (fora de container) poder enviar.
+      - "127.0.0.1:${ICARUS_LOKI_PORTA:-3100}:3100"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      # Habilita o recebedor OTLP: a API empurra metricas direto, sem scrape.
+      - "--web.enable-otlp-receiver"
+    volumes:
+      - ./observabilidade/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_dados:/prometheus
+    ports:
+      - "127.0.0.1:${ICARUS_PROMETHEUS_PORTA:-9090}:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${ICARUS_GRAFANA_USUARIO:-icarus}
+      GF_SECURITY_ADMIN_PASSWORD: ${ICARUS_GRAFANA_SENHA:-icarus-desenvolvimento}
+    volumes:
+      - grafana_dados:/var/lib/grafana
+      - ./observabilidade/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    ports:
+      - "127.0.0.1:${ICARUS_GRAFANA_PORTA:-3000}:3000"
+    depends_on:
+      - tempo
+      - prometheus
+      - loki
+    restart: unless-stopped
+
 volumes:
   mobile_dependencias:
   minio_raw:
   duckdb_dados:
   rabbitmq_dados:
+  tempo_dados:
+  prometheus_dados:
+  grafana_dados:
+  loki_dados:
