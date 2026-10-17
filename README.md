@@ -61,7 +61,7 @@ acontecer pelo nome do serviço em vez de portas publicadas no host.
 ## Aplicativo mobile no Expo Go
 
 O Metro pode ser executado como serviço local. A branch `development` do
-mobile usa Expo SDK 54 e abre no Expo Go; ditado e `react-native-keychain`
+mobile usa Expo SDK 57 e abre no Expo Go; ditado e `react-native-keychain`
 ficam na branch `feature/recursos-nativos`, que exige uma build própria.
 
 ```bash
