@@ -60,15 +60,19 @@ acontecer pelo nome do serviço em vez de portas publicadas no host.
 
 ## Aplicativo mobile no Expo Go
 
-O Expo Go também pode ser executado como serviço local. O Expo cria um túnel
-para o dispositivo, portanto não há porta da infraestrutura exposta na rede.
+O Metro pode ser executado como serviço local. A branch `development` do
+mobile usa Expo SDK 54 e abre no Expo Go; ditado e `react-native-keychain`
+ficam na branch `feature/recursos-nativos`, que exige uma build própria.
 
 ```bash
 docker compose up -d --build mobile
 docker compose logs -f mobile
 ```
 
-Copie a URL `exp://` exibida nos logs e abra-a no Expo Go. O código do
+Abra a URL `exp://` exibida nos logs pelo Expo Go. No iPhone físico, a CLI e o
+Expo Go precisam usar a mesma conta Expo. O túnel só transporta o Metro: para
+testes fora da rede, configure um endereço HTTPS público da API em
+`EXPO_PUBLIC_API_URL`; na rede local, use `http://IP_DA_MAQUINA:5138`. O código do
 checkout de `icarus-mobile` é montado no contêiner, preservando a atualização
 automática durante o desenvolvimento.
 
