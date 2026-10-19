@@ -1,6 +1,18 @@
 name: icarus
 
 services:
+  worker:
+    profiles: ["mvp"]
+    build:
+      context: ../icarus-ai
+      dockerfile: ../icarus-infrastructure/docker/worker.Dockerfile
+    network_mode: host
+    environment:
+      - ICARUS_RABBITMQ_URL
+    volumes:
+      - ../icarus-ai:/app:ro
+    init: true
+
   mobile:
     build:
       context: ../icarus-mobile

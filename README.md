@@ -110,7 +110,55 @@ sob pena de degradar a performance do Loki).
 Consumidores hoje rodam fora de container (mesma situação do RabbitMQ, ver
 seção acima) e se conectam pelas portas publicadas em `localhost`.
 
-## Deployment local
+## Iniciar o MVP local
+
+Em Linux, com Docker/Compose, Python ≥3.10 com pip, Node.js 22 e o SDK .NET
+indicado no `global.json` da plataforma:
+
+```bash
+./scripts/iniciar-projeto.sh
+```
+
+Usa os checkouts atuais, lado a lado no workspace. Enquanto a integração do
+onboarding não estiver em `development`, use:
+
+| Repositório | Branch |
+| --- | --- |
+| `icarus-platform` | `feature/onboarding-integrado` |
+| `icarus-mobile` | `feature/onboarding-e-auth` |
+| `icarus-ai` | `feature/onboarding-integrado` |
+
+Preencha uma vez `icarus-ai/.env` com o provedor, modelo, endpoint e chave de
+IA. O script usa o RabbitMQ local também no worker. A chave permanece nesse
+arquivo ignorado pelo Git; ela não vai para o aplicativo.
+
+O comando inicia PostgreSQL, RabbitMQ e MinIO, aplica migrations no banco do
+projeto (`POSTGRES_DB`, por padrão `icarus`), inicia a API em 5138, o worker com Python 3.13 em
+contêiner e o Expo Go em 8082. Dependências são preparadas na primeira execução;
+o código dos três repositórios continua nos seus próprios checkouts. Contas,
+épicos, campanhas e missões persistidos pela API permanecem no banco entre
+execuções; o iniciador não cria usuários, dados fictícios ou cenários de teste.
+
+Com um Android autorizado no `adb`, configura o acesso por USB, abre o Expo Go
+e espelha a tela. Requer Expo Go instalado, depuração USB autorizada e sessão
+gráfica no notebook; em Linux x86_64 baixa o scrcpy 5.0.1 quando necessário.
+Sem celular autorizado, publica o Expo na rede local; abra pelo mesmo Wi-Fi.
+Use `ICARUS_IP_LOCAL` se a detecção escolher a interface errada.
+
+O QR fica em `.execucao/qr-expo.png` e também na Área de Trabalho, se existir.
+O ditado exige build nativa e fica indisponível no Expo Go. Configurações,
+PIDs e logs locais ficam em `.execucao/`; logs da IA: `docker compose logs -f
+worker`. Cada execução reinicia API e Expo gerenciados pelo script;
+mantém o espelhamento durante a preparação e reabre sua janela ao final.
+Após atualizar uma branch, execute o mesmo comando novamente.
+
+Para encerrar API, worker, Expo e espelhamento, mantendo os serviços de dados:
+
+```bash
+./scripts/iniciar-projeto.sh --parar
+```
+
+## Deployment local de development
 
 A branch `development` contém o script inicial de deployment local. Ele cria
 ou atualiza checkouts isolados das branches remotas `development` de mobile,
