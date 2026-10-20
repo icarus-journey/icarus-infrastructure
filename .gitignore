@@ -1,1 +1,5 @@
 .deployment/
+.execucao/
+
+__pycache__/
+*.pyc
