@@ -9,8 +9,15 @@ services:
     network_mode: host
     environment:
       - ICARUS_RABBITMQ_URL
+      - ICARUS_BANCO_OPERACIONAL=/estado/relatorios.sqlite3
     volumes:
       - ../icarus-ai:/app:ro
+      - worker_operacional:/estado
+    healthcheck:
+      test: ["CMD", "python", "-m", "icarus_worker.persistencia.saude"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     init: true
 
   mobile:
@@ -122,6 +129,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  worker_operacional:
   mobile_dependencias:
   minio_raw:
   duckdb_dados:

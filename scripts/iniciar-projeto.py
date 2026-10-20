@@ -314,10 +314,13 @@ def iniciar():
     autorizacao = base64.b64encode(f"{mq['RABBITMQ_DEFAULT_USER']}:{mq['RABBITMQ_DEFAULT_PASS']}".encode()).decode()
 
     def worker_pronto():
-        pedido = Request(f"http://127.0.0.1:{porta_container(rabbit, 15672)}/api/queues/%2F/icarus.onboarding",
-                         headers={"Authorization": "Basic " + autorizacao})
-        with urlopen(pedido, timeout=3) as resposta:
-            return json.load(resposta).get("consumers", 0) > 0
+        for fila in ["icarus.onboarding", "icarus.relatorio.semanal.v1"]:
+            pedido = Request(f"http://127.0.0.1:{porta_container(rabbit, 15672)}/api/queues/%2F/{fila}",
+                             headers={"Authorization": "Basic " + autorizacao})
+            with urlopen(pedido, timeout=3) as resposta:
+                if json.load(resposta).get("consumers", 0) == 0:
+                    return False
+        return True
 
     aguardar(worker_pronto, "Worker de IA")
     informar("Preparando o Expo Go.")

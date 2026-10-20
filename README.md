@@ -52,11 +52,11 @@ Assim como o MinIO, as portas ficam publicadas somente em `127.0.0.1` — não s
 expostas fora do host (seção 10.3 da arquitetura). O console administrativo é
 uma ferramenta de desenvolvimento; não deve ser habilitado/exposto em produção.
 
-Consumidores (API em `icarus-platform`, trabalhador em `icarus-data`) hoje
-rodam fora de container e se conectam por `localhost:5672` com as portas
-publicadas acima. Quando esses processos forem containerizados, será preciso
-uma rede Docker compartilhada entre os repositórios para a comunicação
-acontecer pelo nome do serviço em vez de portas publicadas no host.
+A API roda no host e o trabalhador atual pertence a `icarus-ai`, executado em
+contêiner com rede do host no iniciador Linux. Ambos usam o RabbitMQ local;
+`icarus-data` executa o ETL sob demanda. O relatório semanal usa o volume
+`worker_operacional:/estado` para SQLite e saúde transacional, sem credenciais
+do PostgreSQL no trabalhador. Não remova esse volume para reiniciar o app.
 
 ## Aplicativo mobile no Expo Go
 
@@ -193,3 +193,25 @@ manualmente). Precisamos decidir **uma convenção única** para todos os
 serviços (provável candidato: tag imutável/digest para todos, seguindo o
 exemplo do MinIO) e aplicá-la de forma consistente. Não decidido ainda —
 discutir antes de adicionar novos serviços (ex.: trabalhador Python, Nginx).
+
+## Verificar a integração analítica local
+
+Com o projeto iniciado e a Gold publicada pelo procedimento de Dados:
+
+```bash
+python3 icarus-infrastructure/scripts/verificar-consumo-analitico.py
+```
+
+Execute da raiz do workspace. O comando cria três contas temporárias pela API,
+verifica seleção pública por idade, linhagem, autenticação e isolamento. Insere
+conclusões de teste somente na conta temporária adulta, solicita uma geração
+real ao provedor configurado e verifica persistência/idempotência. Isso pode
+consumir uma chamada do provedor. Remove as contas ao terminar, inclusive após
+falha, e salva evidência sem tokens em
+`.execucao/evidencias/consumo-analitico.json`. Não adiciona histórico a contas
+existentes nem publica novamente a Gold. O teste exige Docker/psql local,
+banco `icarus` e API 5138; `--api` altera somente o endereço HTTP.
+
+API, mobile e trabalhador devem usar as features de onboarding desta sessão;
+Gold vem de `icarus-data/feature/camada-silver`. Contratos HTTP e de mensagens
+estão no [contexto analítico](../icarus-context/docs/implementation-design/platform/06-consumo-analitico-mobile-api.md).
