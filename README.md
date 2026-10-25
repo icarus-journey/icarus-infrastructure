@@ -52,11 +52,11 @@ Assim como o MinIO, as portas ficam publicadas somente em `127.0.0.1` — não s
 expostas fora do host (seção 10.3 da arquitetura). O console administrativo é
 uma ferramenta de desenvolvimento; não deve ser habilitado/exposto em produção.
 
-Consumidores (API em `icarus-platform`, trabalhador em `icarus-data`) hoje
-rodam fora de container e se conectam por `localhost:5672` com as portas
-publicadas acima. Quando esses processos forem containerizados, será preciso
-uma rede Docker compartilhada entre os repositórios para a comunicação
-acontecer pelo nome do serviço em vez de portas publicadas no host.
+A API roda no host e o trabalhador atual pertence a `icarus-ai`, executado em
+contêiner com rede do host no iniciador Linux. Ambos usam o RabbitMQ local;
+`icarus-data` executa o ETL sob demanda. O relatório semanal usa o volume
+`worker_operacional:/estado` para SQLite e saúde transacional, sem credenciais
+do PostgreSQL no trabalhador. Não remova esse volume para reiniciar o app.
 
 ## Aplicativo mobile no Expo Go
 
@@ -110,7 +110,66 @@ sob pena de degradar a performance do Loki).
 Consumidores hoje rodam fora de container (mesma situação do RabbitMQ, ver
 seção acima) e se conectam pelas portas publicadas em `localhost`.
 
-## Deployment local
+## Iniciar o MVP local
+
+Em Linux, com Docker/Compose, Python ≥3.10 com pip, Node.js 22 e o SDK .NET
+indicado no `global.json` da plataforma:
+
+```bash
+./scripts/iniciar-projeto.sh
+```
+
+Usa os checkouts atuais, lado a lado no workspace. Enquanto a integração do
+onboarding não estiver em `development`, use:
+
+| Repositório | Branch |
+| --- | --- |
+| `icarus-platform` | `feature/onboarding-integrado` |
+| `icarus-mobile` | `feature/onboarding-e-auth` |
+| `icarus-ai` | `feature/onboarding-integrado` |
+
+Preencha uma vez `icarus-ai/.env` com o provedor, modelo, endpoint e chave de
+IA. O script usa o RabbitMQ local também no worker. A chave permanece nesse
+arquivo ignorado pelo Git; ela não vai para o aplicativo.
+
+Antes de iniciar a API, aguarda a saúde do MinIO e fornece sua configuração
+para a foto de perfil. As credenciais ficam somente no ambiente da API e em
+`.execucao/ambiente-api.json`, ignorado pelo Git, com permissão `0600`.
+
+O comando inicia PostgreSQL, RabbitMQ e MinIO, aplica migrations no banco do
+projeto (`POSTGRES_DB`, por padrão `icarus`), inicia a API em 5138, o worker com Python 3.13 em
+contêiner e o Expo Go em 8082. Dependências são preparadas na primeira execução;
+o código dos três repositórios continua nos seus próprios checkouts. Contas,
+épicos, campanhas e missões persistidos pela API permanecem no banco entre
+execuções; o iniciador não cria usuários, dados fictícios ou cenários de teste.
+
+Com um Android autorizado no `adb`, configura o acesso por USB, abre o Expo Go
+e espelha a tela. Requer Expo Go instalado, depuração USB autorizada e sessão
+gráfica no notebook; em Linux x86_64 baixa o scrcpy 5.0.1 quando necessário.
+Sem celular autorizado, publica o Expo na rede local; abra pelo mesmo Wi-Fi.
+Use `ICARUS_IP_LOCAL` se a detecção escolher a interface errada.
+
+O QR fica em `.execucao/qr-expo.png` e também na Área de Trabalho, se existir.
+O ditado exige build nativa e fica indisponível no Expo Go. Configurações,
+PIDs e logs locais ficam em `.execucao/`; logs da IA: `docker compose logs -f
+worker`. Cada execução reinicia API e Expo gerenciados pelo script;
+mantém o espelhamento durante a preparação e reabre sua janela ao final.
+Após atualizar uma branch, execute o mesmo comando novamente.
+
+Para testar o ditado, compile e instale primeiro o cliente Android no checkout
+mobile (`npm run android -- --no-bundler`, com Java/Android SDK e USB autorizado).
+Depois use `./scripts/iniciar-projeto.sh --nativo`: abre o cliente Icarus instalado
+com Metro 8082, API 5138 e espelhamento. O modo padrão continua usando Expo Go;
+`--nativo` não compila nem instala o aplicativo. Mudanças somente em JavaScript
+dispensam nova build. O ditado usa o modelo de português do próprio aparelho.
+
+Para encerrar API, worker, Expo e espelhamento, mantendo os serviços de dados:
+
+```bash
+./scripts/iniciar-projeto.sh --parar
+```
+
+## Deployment local de development
 
 A branch `development` contém o script inicial de deployment local. Ele cria
 ou atualiza checkouts isolados das branches remotas `development` de mobile,
@@ -145,3 +204,25 @@ manualmente). Precisamos decidir **uma convenção única** para todos os
 serviços (provável candidato: tag imutável/digest para todos, seguindo o
 exemplo do MinIO) e aplicá-la de forma consistente. Não decidido ainda —
 discutir antes de adicionar novos serviços (ex.: trabalhador Python, Nginx).
+
+## Verificar a integração analítica local
+
+Com o projeto iniciado e a Gold publicada pelo procedimento de Dados:
+
+```bash
+python3 icarus-infrastructure/scripts/verificar-consumo-analitico.py
+```
+
+Execute da raiz do workspace. O comando cria três contas temporárias pela API,
+verifica seleção pública por idade, linhagem, autenticação e isolamento. Insere
+conclusões de teste somente na conta temporária adulta, solicita uma geração
+real ao provedor configurado e verifica persistência/idempotência. Isso pode
+consumir uma chamada do provedor. Remove as contas ao terminar, inclusive após
+falha, e salva evidência sem tokens em
+`.execucao/evidencias/consumo-analitico.json`. Não adiciona histórico a contas
+existentes nem publica novamente a Gold. O teste exige Docker/psql local,
+banco `icarus` e API 5138; `--api` altera somente o endereço HTTP.
+
+API, mobile e trabalhador devem usar as features de onboarding desta sessão;
+Gold vem de `icarus-data/feature/camada-silver`. Contratos HTTP e de mensagens
+estão no [contexto analítico](../icarus-context/docs/implementation-design/platform/06-consumo-analitico-mobile-api.md).
