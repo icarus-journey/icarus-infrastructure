@@ -156,6 +156,13 @@ worker`. Cada execução reinicia API e Expo gerenciados pelo script;
 mantém o espelhamento durante a preparação e reabre sua janela ao final.
 Após atualizar uma branch, execute o mesmo comando novamente.
 
+Para testar o ditado, compile e instale primeiro o cliente Android no checkout
+mobile (`npm run android -- --no-bundler`, com Java/Android SDK e USB autorizado).
+Depois use `./scripts/iniciar-projeto.sh --nativo`: abre o cliente Icarus instalado
+com Metro 8082, API 5138 e espelhamento. O modo padrão continua usando Expo Go;
+`--nativo` não compila nem instala o aplicativo. Mudanças somente em JavaScript
+dispensam nova build. O ditado usa o modelo de português do próprio aparelho.
+
 Para encerrar API, worker, Expo e espelhamento, mantendo os serviços de dados:
 
 ```bash

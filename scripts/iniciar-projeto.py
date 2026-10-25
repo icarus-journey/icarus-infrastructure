@@ -274,7 +274,7 @@ def espelhar(serial):
              "Espelhamento indisponível; consulte .execucao/espelhamento.log.")
 
 
-def iniciar():
+def iniciar(nativo=False):
     for comando in ["docker", "dotnet", "npm", "git"]:
         if not shutil.which(comando):
             raise RuntimeError(f"Instale {comando} antes de iniciar o projeto.")
@@ -331,28 +331,30 @@ def iniciar():
         return True
 
     aguardar(worker_pronto, "Worker de IA")
-    informar("Preparando o Expo Go.")
+    informar("Preparando o cliente nativo." if nativo else "Preparando o Expo Go.")
     preparar_mobile()
     serial = celular_usb()
     endereco = "127.0.0.1" if serial else ip_local()
     ambiente_mobile = os.environ.copy()
     ambiente_mobile["EXPO_PUBLIC_API_URL"] = f"http://{endereco}:{PORTA_API}"
-    iniciar_processo("expo", [str(MOBILE / "node_modules/.bin/expo"), "start", "--go",
+    iniciar_processo("expo", [str(MOBILE / "node_modules/.bin/expo"), "start", "--dev-client" if nativo else "--go",
                      "--localhost" if serial else "--lan", "--port", str(PORTA_EXPO)], MOBILE, ambiente_mobile)
     aguardar(lambda: http_pronto(f"http://127.0.0.1:{PORTA_EXPO}/status"), "Expo")
-    url_expo = f"exp://{endereco}:{PORTA_EXPO}"
+    url_expo = (f"icarus://expo-development-client/?url=http%3A%2F%2F{endereco}%3A{PORTA_EXPO}"
+                if nativo else f"exp://{endereco}:{PORTA_EXPO}")
     gerar_qr(url_expo)
     if serial:
         for porta in [PORTA_API, PORTA_EXPO]:
             executar(["adb", "-s", serial, "reverse", f"tcp:{porta}", f"tcp:{porta}"])
         executar(["adb", "-s", serial, "shell", "am", "start", "-W", "-a", "android.intent.action.VIEW",
-                  "-d", url_expo, "-p", "host.exp.exponent"])
+                  "-d", url_expo, "-p", "com.fabiam.icarusmobile" if nativo else "host.exp.exponent"])
         try:
             espelhar(serial)
         except (OSError, RuntimeError, subprocess.CalledProcessError) as erro:
             informar(f"App iniciado; espelhamento opcional indisponível: {erro}")
     else:
-        informar("Abra o QR no Expo Go, na mesma rede Wi-Fi. Para USB, autorize a depuração e execute novamente.")
+        informar("Abra o QR no cliente Icarus instalado, na mesma rede Wi-Fi." if nativo else
+                 "Abra o QR no Expo Go, na mesma rede Wi-Fi. Para USB, autorize a depuração e execute novamente.")
     informar(f"MVP local iniciado: {url_expo} | API: http://127.0.0.1:{PORTA_API}/swagger")
     informar(f"Logs: {EXECUCAO}; worker: docker compose logs -f worker")
 
@@ -360,6 +362,7 @@ def iniciar():
 def principal():
     argumentos = argparse.ArgumentParser(description=__doc__)
     argumentos.add_argument("--parar", action="store_true", help="Encerra API, Expo, worker e espelhamento do MVP local.")
+    argumentos.add_argument("--nativo", action="store_true", help="Abre o cliente Icarus já compilado, com ditado local.")
     opcoes = argumentos.parse_args()
     if sys.platform != "linux":
         raise RuntimeError("Este iniciador foi preparado para Linux.")
@@ -371,7 +374,7 @@ def principal():
         executar(COMPOSE + ["--profile", "mvp", "stop", "worker"])
         informar("MVP local encerrado. PostgreSQL, RabbitMQ, MinIO e seus dados continuam disponíveis.")
     else:
-        iniciar()
+        iniciar(nativo=opcoes.nativo)
 
 
 if __name__ == "__main__":
