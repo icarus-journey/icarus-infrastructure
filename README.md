@@ -132,6 +132,10 @@ Preencha uma vez `icarus-ai/.env` com o provedor, modelo, endpoint e chave de
 IA. O script usa o RabbitMQ local também no worker. A chave permanece nesse
 arquivo ignorado pelo Git; ela não vai para o aplicativo.
 
+Antes de iniciar a API, aguarda a saúde do MinIO e fornece sua configuração
+para a foto de perfil. As credenciais ficam somente no ambiente da API e em
+`.execucao/ambiente-api.json`, ignorado pelo Git, com permissão `0600`.
+
 O comando inicia PostgreSQL, RabbitMQ e MinIO, aplica migrations no banco do
 projeto (`POSTGRES_DB`, por padrão `icarus`), inicia a API em 5138, o worker com Python 3.13 em
 contêiner e o Expo Go em 8082. Dependências são preparadas na primeira execução;

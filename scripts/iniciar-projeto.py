@@ -135,8 +135,9 @@ def porta_container(dados, porta):
     return dados["NetworkSettings"]["Ports"][f"{porta}/tcp"][0]["HostPort"]
 
 
-def configurar_api(postgres, rabbit):
+def configurar_api(postgres, rabbit, minio):
     pg, mq = ambiente_container(postgres), ambiente_container(rabbit)
+    armazenamento = ambiente_container(minio)
     usuario = pg.get("POSTGRES_USER", "postgres")
     banco = pg.get("POSTGRES_DB", "icarus")
     psql = ["docker", "exec", postgres["Id"], "psql", "-U", usuario, "-d", "postgres", "-tAc"]
@@ -159,9 +160,12 @@ def configurar_api(postgres, rabbit):
         "RabbitMq__Host": "127.0.0.1", "RabbitMq__Porta": porta_container(rabbit, 5672),
         "RabbitMq__Usuario": mq["RABBITMQ_DEFAULT_USER"],
         "RabbitMq__Senha": mq["RABBITMQ_DEFAULT_PASS"],
+        "Minio__Endpoint": f"127.0.0.1:{porta_container(minio, 9000)}",
+        "Minio__AccessKey": armazenamento["MINIO_ROOT_USER"],
+        "Minio__SecretKey": armazenamento["MINIO_ROOT_PASSWORD"],
     })
     arquivo.write_text(json.dumps({k: v for k, v in ambiente.items() if k.startswith((
-        "ASPNETCORE_", "ConnectionStrings__", "Jwt__", "RabbitMq__",
+        "ASPNETCORE_", "ConnectionStrings__", "Jwt__", "RabbitMq__", "Minio__",
     ))}))
     arquivo.chmod(0o600)
     return ambiente
@@ -297,7 +301,11 @@ def iniciar():
     executar(COMPOSE + ["up", "-d", "rabbitmq", "minio"])
     postgres = dados_container(COMPOSE_BANCO, "postgres")
     rabbit = dados_container(COMPOSE, "rabbitmq")
-    ambiente = configurar_api(postgres, rabbit)
+    identificador_minio = executar(COMPOSE + ["ps", "-q", "minio"], capturar=True).strip()
+    minio = json.loads(executar(["docker", "inspect", identificador_minio], capturar=True))[0]
+    aguardar(lambda: http_pronto(
+        f"http://127.0.0.1:{porta_container(minio, 9000)}/minio/health/live"), "MinIO")
+    ambiente = configurar_api(postgres, rabbit, minio)
     informar(f"Compilando a API e aplicando migrations no banco {ambiente_container(postgres).get('POSTGRES_DB', 'icarus')}.")
     preparar_api(ambiente)
     iniciar_processo("api", ["dotnet", "run", "--project", str(API / "src/Icarus.Api"),
