@@ -187,6 +187,14 @@ local, defina `ICARUS_DIRETORIO_DEPLOYMENT`. A API ainda não é iniciada nem
 recebe migrations; o mobile é iniciado como Expo em túnel a partir da revisão
 de `development`.
 
+## Medir desempenho da API
+
+O [procedimento JMeter](scripts/desempenho/README.md) cria 50 contas sintéticas
+com seis meses de histórico em banco/vhost exclusivos e compara revisões
+Release pela API na porta 5139. Mede leituras, conclusão e resgate/estorno sem
+copiar dados pessoais, executar IA externa ou alterar o banco de apresentação.
+Os comandos incluem preparação, análise agregada e limpeza somente da carga.
+
 ## Pendências
 
 **Estratégia de versionamento das imagens Docker.** Hoje cada serviço usa uma
