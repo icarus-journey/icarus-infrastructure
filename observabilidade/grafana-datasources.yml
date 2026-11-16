@@ -1,0 +1,41 @@
+apiVersion: 1
+
+datasources:
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    uid: tempo
+    jsonData:
+      # Permite, a partir de um trace no Tempo, pular direto para os logs daquela
+      # requisição no Loki — procura o TraceId dentro do texto da linha de log
+      # (não como label: TraceId é alta cardinalidade, nunca deve virar label no Loki).
+      # customQuery+query é necessário porque o Loki exige um seletor de stream (label)
+      # na consulta — sem isso, o Grafana não sabe que o label é app="Icarus.Api" e a
+      # busca falha com "No logs volume available".
+      tracesToLogsV2:
+        datasourceUid: loki
+        customQuery: true
+        query: '{app="Icarus.Api"} |= "${__trace.traceId}"'
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    uid: prometheus
+    isDefault: true
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    uid: loki
+    jsonData:
+      # Permite, a partir de uma linha de log no Loki, pular direto para o trace
+      # correspondente no Tempo — usa o campo TraceId presente no JSON de cada linha.
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"TraceId":"(\w+)"'
+          name: TraceId
+          url: "$${__value.raw}"
+          urlDisplayLabel: "Ver trace"
